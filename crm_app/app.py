@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, redirect, url_for
 from flask_login import login_required, current_user
 from config import Config
@@ -125,50 +126,57 @@ def create_app():
 
 
 def seed_data():
-    if not User.query.filter_by(email='admin@clientflow.com').first():
-        admin = User(name='Admin User', email='admin@clientflow.com', role='admin')
-        admin.set_password('admin123')
-        db.session.add(admin)
+    try:
+        if not User.query.filter_by(email='admin@clientflow.com').first():
+            admin = User(name='Admin User', email='admin@clientflow.com', role='admin')
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.flush()
 
-        manager = User(name='Sales Manager', email='manager@clientflow.com', role='manager')
-        manager.set_password('manager123')
-        db.session.add(manager)
+            manager = User(name='Sales Manager', email='manager@clientflow.com', role='manager')
+            manager.set_password('manager123')
+            db.session.add(manager)
+            db.session.flush()
 
-        staff = User(name='Sales Staff', email='staff@clientflow.com', role='sales_staff')
-        staff.set_password('staff123')
-        db.session.add(staff)
-        db.session.commit()
+            staff = User(name='Sales Staff', email='staff@clientflow.com', role='sales_staff')
+            staff.set_password('staff123')
+            db.session.add(staff)
+            db.session.flush()
 
-        customers_data = [
-            {'name': 'Rajesh Kumar',  'email': 'rajesh@example.com',  'phone': '9876543210', 'lead_source': 'Referral',      'status': 'Won',           'deal_value': 85000,  'assigned_to': staff.id},
-            {'name': 'Priya Sharma',  'email': 'priya@example.com',   'phone': '9876543211', 'lead_source': 'Website',       'status': 'Negotiation',   'deal_value': 120000, 'assigned_to': staff.id},
-            {'name': 'Amit Singh',    'email': 'amit@example.com',    'phone': '9876543212', 'lead_source': 'Cold Call',     'status': 'Proposal Sent', 'deal_value': 45000,  'assigned_to': manager.id},
-            {'name': 'Sunita Patel',  'email': 'sunita@example.com',  'phone': '9876543213', 'lead_source': 'Social Media',  'status': 'Interested',    'deal_value': 30000,  'assigned_to': staff.id},
-            {'name': 'Vikram Mehta',  'email': 'vikram@example.com',  'phone': '9876543214', 'lead_source': 'Website',       'status': 'Contacted',     'deal_value': 75000,  'assigned_to': manager.id},
-            {'name': 'Neha Gupta',    'email': 'neha@example.com',    'phone': '9876543215', 'lead_source': 'Referral',      'status': 'Won',           'deal_value': 95000,  'assigned_to': manager.id},
-            {'name': 'Arjun Verma',   'email': 'arjun@example.com',   'phone': '9876543216', 'lead_source': 'Email Campaign','status': 'Lost',          'deal_value': 20000,  'assigned_to': staff.id},
-        ]
-        for cd in customers_data:
-            c = Customer(**cd)
-            db.session.add(c)
-        db.session.commit()
+            customers_data = [
+                {'name': 'Rajesh Kumar',  'email': 'rajesh@example.com',  'phone': '9876543210', 'lead_source': 'Referral',       'status': 'Won',           'deal_value': 85000,  'assigned_to': staff.id},
+                {'name': 'Priya Sharma',  'email': 'priya@example.com',   'phone': '9876543211', 'lead_source': 'Website',        'status': 'Negotiation',   'deal_value': 120000, 'assigned_to': staff.id},
+                {'name': 'Amit Singh',    'email': 'amit@example.com',    'phone': '9876543212', 'lead_source': 'Cold Call',      'status': 'Proposal Sent', 'deal_value': 45000,  'assigned_to': manager.id},
+                {'name': 'Sunita Patel',  'email': 'sunita@example.com',  'phone': '9876543213', 'lead_source': 'Social Media',   'status': 'Interested',    'deal_value': 30000,  'assigned_to': staff.id},
+                {'name': 'Vikram Mehta',  'email': 'vikram@example.com',  'phone': '9876543214', 'lead_source': 'Website',        'status': 'Contacted',     'deal_value': 75000,  'assigned_to': manager.id},
+                {'name': 'Neha Gupta',    'email': 'neha@example.com',    'phone': '9876543215', 'lead_source': 'Referral',       'status': 'Won',           'deal_value': 95000,  'assigned_to': manager.id},
+                {'name': 'Arjun Verma',   'email': 'arjun@example.com',   'phone': '9876543216', 'lead_source': 'Email Campaign', 'status': 'Lost',          'deal_value': 20000,  'assigned_to': staff.id},
+            ]
+            for cd in customers_data:
+                c = Customer(**cd)
+                db.session.add(c)
+            db.session.flush()
 
-        from models.activity import Activity
-        customers = Customer.query.all()
-        for i, c in enumerate(customers[:4]):
-            act = Activity(
-                customer_id=c.id,
-                created_by=staff.id,
-                activity_type='Call',
-                note=f'Initial discovery call with {c.name}. Discussed requirements.',
-                outcome='Interested in moving forward.',
-                next_followup=datetime.utcnow() + timedelta(days=i - 1)
-            )
-            db.session.add(act)
-        db.session.commit()
+            customers = Customer.query.all()
+            for i, c in enumerate(customers[:4]):
+                act = Activity(
+                    customer_id=c.id,
+                    created_by=staff.id,
+                    activity_type='Call',
+                    note=f'Initial discovery call with {c.name}. Discussed requirements.',
+                    outcome='Interested in moving forward.',
+                    next_followup=datetime.utcnow() + timedelta(days=i - 1)
+                )
+                db.session.add(act)
+
+            db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Seed skipped: {e}")
 
 
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
