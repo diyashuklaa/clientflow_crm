@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block page_title %}Customer Detail{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('customers.list_customers') }}" class="btn btn-ghost btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> All Customers
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Customer Info -->
+    <div class="col-lg-4">
+        <div class="card-panel">
+            <div class="customer-profile-header">
+                <div class="profile-avatar">{{ customer.name[0].upper() }}</div>
+                <h4>{{ customer.name }}</h4>
+                <span class="status-badge status-{{ customer.status|replace(' ', '-')|lower }} mb-2">{{ customer.status }}</span>
+                {% if customer.deal_value %}
+                <div class="deal-value-display">₹{{ '{:,.0f}'.format(customer.deal_value) }}</div>
+                {% endif %}
+            </div>
+
+            <div class="info-list">
+                <div class="info-item">
+                    <i class="bi bi-envelope-fill"></i>
+                    <span>{{ customer.email or '—' }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-telephone-fill"></i>
+                    <span>{{ customer.phone or '—' }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <span>{{ customer.address or '—' }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-funnel-fill"></i>
+                    <span>{{ customer.lead_source or '—' }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-person-fill"></i>
+                    <span>{{ customer.assigned_user.name if customer.assigned_user else 'Unassigned' }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-calendar3"></i>
+                    <span>Added {{ customer.created_at.strftime('%d %b %Y') }}</span>
+                </div>
+            </div>
+
+            {% if customer.requirement %}
+            <div class="requirement-box mt-3">
+                <div class="req-label">Requirement</div>
+                <p>{{ customer.requirement }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Edit Customer Modal Trigger -->
+            <button class="btn btn-primary w-100 mt-3" data-bs-toggle="modal" data-bs-target="#editCustomerModal">
+                <i class="bi bi-pencil-fill me-2"></i>Edit Customer
+            </button>
+            {% if current_user.role in ['admin', 'manager'] %}
+            <form method="POST" action="{{ url_for('customers.delete_customer', customer_id=customer.id) }}" onsubmit="return confirm('Delete this customer and all activities?')" class="mt-2">
+                <button type="submit" class="btn btn-outline-danger w-100">
+                    <i class="bi bi-trash me-2"></i>Delete Customer
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Activities Timeline -->
+    <div class="col-lg-8">
+        <!-- Log Activity -->
+        <div class="card-panel mb-4">
+            <div class="panel-header mb-3">
+                <h5><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Log Activity</h5>
+            </div>
+            <form method="POST" action="{{ url_for('activities.add_activity', customer_id=customer.id) }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Activity Type</label>
+                        <select name="activity_type" class="form-select" required>
+                            <option value="">Select Type</option>
+                            {% for t in ['Call', 'Meeting', 'Follow-up', 'Quote Shared', 'Email', 'Note', 'Customer Response'] %}
+                            <option value="{{ t }}">{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Next Follow-up</label>
+                        <input type="datetime-local" name="next_followup" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Notes</label>
+                        <textarea name="note" class="form-control" rows="3" placeholder="What happened?"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Outcome</label>
+                        <textarea name="outcome" class="form-control" rows="3" placeholder="Result or next steps..."></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">
+                    <i class="bi bi-plus-circle me-2"></i>Log Activity
+                </button>
+            </form>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card-panel">
+            <div class="panel-header mb-3">
+                <h5>Activity Timeline ({{ activities|length }})</h5>
+            </div>
+            <div class="activity-timeline">
+                {% for activity in activities %}
+                <div class="timeline-item">
+                    <div class="timeline-icon timeline-{{ activity.activity_type|lower|replace(' ', '-') }}">
+                        {% if activity.activity_type == 'Call' %}<i class="bi bi-telephone-fill"></i>
+                        {% elif activity.activity_type == 'Meeting' %}<i class="bi bi-camera-video-fill"></i>
+                        {% elif activity.activity_type == 'Email' %}<i class="bi bi-envelope-fill"></i>
+                        {% elif activity.activity_type == 'Quote Shared' %}<i class="bi bi-file-earmark-text-fill"></i>
+                        {% elif activity.activity_type == 'Customer Response' %}<i class="bi bi-chat-fill"></i>
+                        {% elif activity.activity_type == 'Follow-up' %}<i class="bi bi-clock-fill"></i>
+                        {% else %}<i class="bi bi-sticky-fill"></i>{% endif %}
+                    </div>
+                    <div class="timeline-body">
+                        <div class="timeline-title d-flex justify-content-between">
+                            <strong>{{ activity.activity_type }}</strong>
+                            <span class="text-muted small">{{ activity.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+                        </div>
+                        {% if activity.note %}<div class="timeline-note">{{ activity.note }}</div>{% endif %}
+                        {% if activity.outcome %}<div class="timeline-outcome"><strong>Outcome:</strong> {{ activity.outcome }}</div>{% endif %}
+                        {% if activity.next_followup %}
+                        <div class="timeline-followup">
+                            <i class="bi bi-calendar-event me-1"></i>
+                            Next follow-up: <strong>{{ activity.next_followup.strftime('%d %b %Y, %H:%M') }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <div class="mini-avatar mini-avatar-xs">{{ activity.created_by_user.name[0].upper() if activity.created_by_user else '?' }}</div>
+                            <span class="text-muted small">{{ activity.created_by_user.name if activity.created_by_user else 'Unknown' }}</span>
+                            {% if current_user.role in ['admin', 'manager'] or activity.created_by == current_user.id %}
+                            <form method="POST" action="{{ url_for('activities.delete_activity', activity_id=activity.id) }}" class="ms-auto" onsubmit="return confirm('Delete this activity?')">
+                                <button type="submit" class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-chat-square-text fs-2 d-block mb-2"></i>
+                    No activities yet. Log the first interaction above.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('customers.edit_customer', customer_id=customer.id) }}">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" class="form-control" value="{{ customer.name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ customer.email or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" class="form-control" value="{{ customer.phone or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Deal Value (₹)</label>
+                            <input type="number" name="deal_value" class="form-control" value="{{ customer.deal_value or 0 }}" min="0">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2">{{ customer.address or '' }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Requirement</label>
+                            <textarea name="requirement" class="form-control" rows="2">{{ customer.requirement or '' }}</textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Lead Source</label>
+                            <select name="lead_source" class="form-select">
+                                {% for src in lead_sources %}
+                                <option value="{{ src }}" {% if customer.lead_source == src %}selected{% endif %}>{{ src }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                {% for s in statuses %}
+                                <option value="{{ s }}" {% if customer.status == s %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if current_user.role in ['admin', 'manager'] %}
+                        <div class="col-md-4">
+                            <label class="form-label">Assigned To</label>
+                            <select name="assigned_to" class="form-select">
+                                {% for s in staff %}
+                                <option value="{{ s.id }}" {% if customer.assigned_to == s.id %}selected{% endif %}>{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

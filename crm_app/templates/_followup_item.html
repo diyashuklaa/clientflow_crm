@@ -1,0 +1,19 @@
+<div class="followup-item {% if activity.next_followup and activity.next_followup.date() < today %}overdue-item{% endif %}">
+    <div class="followup-customer">
+        <div class="mini-avatar mini-avatar-sm">{{ activity.customer.name[0].upper() }}</div>
+        <div>
+            <a href="{{ url_for('customers.customer_detail', customer_id=activity.customer_id) }}" class="fw-500">
+                {{ activity.customer.name }}
+            </a>
+            {% if activity.next_followup %}
+            <div class="small {% if activity.next_followup.date() < today %}text-danger{% else %}text-primary{% endif %}">
+                <i class="bi bi-alarm me-1"></i>{{ activity.next_followup.strftime('%d %b %Y, %H:%M') }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="followup-type">
+        <span class="badge-activity">{{ activity.activity_type }}</span>
+    </div>
+    <div class="followup-note text-muted small">{{ (activity.note or '')[:80] }}{% if activity.note and activity.note|length > 80 %}...{% endif %}</div>
+</div>

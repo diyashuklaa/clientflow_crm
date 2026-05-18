@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ClientFlow{% endblock %} — ClientFlow CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">
+            <i class="bi bi-lightning-charge-fill"></i>
+        </div>
+        <span class="brand-name">ClientFlow</span>
+    </div>
+
+    <div class="sidebar-user">
+        <div class="user-avatar">{{ current_user.name[0].upper() }}</div>
+        <div class="user-info">
+            <div class="user-name">{{ current_user.name }}</div>
+            <div class="user-role badge-role badge-{{ current_user.role }}">
+                {% if current_user.role == 'admin' %}Admin
+                {% elif current_user.role == 'manager' %}Manager
+                {% else %}Sales Staff{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-grid-fill"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('customers.list_customers') }}" class="nav-item {% if 'customers' in request.endpoint %}active{% endif %}">
+            <i class="bi bi-people-fill"></i>
+            <span>Customers</span>
+        </a>
+        <a href="{{ url_for('activities.list_activities') }}" class="nav-item {% if request.endpoint == 'activities.list_activities' %}active{% endif %}">
+            <i class="bi bi-clock-history"></i>
+            <span>Follow-ups</span>
+        </a>
+
+        {% if current_user.role in ['admin', 'manager'] %}
+        <div class="nav-section-label">Insights</div>
+        <a href="{{ url_for('analytics.analytics') }}" class="nav-item {% if request.endpoint == 'analytics.analytics' %}active{% endif %}">
+            <i class="bi bi-bar-chart-line-fill"></i>
+            <span>Analytics</span>
+        </a>
+        {% endif %}
+
+        {% if current_user.role == 'admin' %}
+        <div class="nav-section-label">Admin</div>
+        <a href="{{ url_for('admin.manage_users') }}" class="nav-item {% if 'admin' in request.endpoint %}active{% endif %}">
+            <i class="bi bi-shield-lock-fill"></i>
+            <span>User Management</span>
+        </a>
+        {% endif %}
+
+        <div class="nav-section-label">Account</div>
+        <a href="{{ url_for('auth.logout') }}" class="nav-item nav-item-logout">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Logout</span>
+        </a>
+    </nav>
+</div>
+
+<!-- Main content -->
+<div class="main-content" id="mainContent">
+    <header class="top-bar">
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="top-bar-title">{% block page_title %}{% endblock %}</div>
+        <div class="top-bar-actions">
+            {% block top_actions %}{% endblock %}
+        </div>
+    </header>
+
+    <div class="content-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                <i class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'danger' %}bi-exclamation-triangle-fill{% elif category == 'warning' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

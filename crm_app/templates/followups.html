@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Follow-ups{% endblock %}
+{% block page_title %}Follow-up Reminders{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Due Today -->
+    <div class="col-12">
+        <div class="card-panel">
+            <div class="panel-header">
+                <h5><i class="bi bi-calendar-check-fill text-primary me-2"></i>Due Today
+                    <span class="badge bg-primary ms-2">{{ due_today|length }}</span>
+                </h5>
+            </div>
+            {% if due_today %}
+            <div class="followup-list">
+                {% for activity in due_today %}
+                {% include '_followup_item.html' %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-check2-circle text-success fs-2"></i>
+                <p>All caught up! No follow-ups due today.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Overdue -->
+    <div class="col-md-6">
+        <div class="card-panel">
+            <div class="panel-header">
+                <h5><i class="bi bi-clock-fill text-danger me-2"></i>Overdue
+                    <span class="badge bg-danger ms-2">{{ overdue|length }}</span>
+                </h5>
+            </div>
+            {% if overdue %}
+            <div class="followup-list">
+                {% for activity in overdue %}
+                <div class="followup-item overdue-item">
+                    <div class="followup-customer">
+                        <div class="mini-avatar mini-avatar-sm">{{ activity.customer.name[0].upper() }}</div>
+                        <div>
+                            <a href="{{ url_for('customers.customer_detail', customer_id=activity.customer_id) }}" class="fw-500">
+                                {{ activity.customer.name }}
+                            </a>
+                            <div class="small text-danger">
+                                <i class="bi bi-alarm me-1"></i>{{ activity.next_followup.strftime('%d %b %Y') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="followup-type">
+                        <span class="badge-activity">{{ activity.activity_type }}</span>
+                    </div>
+                    <div class="followup-note text-muted small">{{ (activity.note or '')[:60] }}{% if activity.note and activity.note|length > 60 %}...{% endif %}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-check-circle text-success fs-2"></i>
+                <p>No overdue follow-ups!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming -->
+    <div class="col-md-6">
+        <div class="card-panel">
+            <div class="panel-header">
+                <h5><i class="bi bi-calendar2-week-fill text-success me-2"></i>Next 7 Days
+                    <span class="badge bg-success ms-2">{{ upcoming|length }}</span>
+                </h5>
+            </div>
+            {% if upcoming %}
+            <div class="followup-list">
+                {% for activity in upcoming %}
+                <div class="followup-item">
+                    <div class="followup-customer">
+                        <div class="mini-avatar mini-avatar-sm">{{ activity.customer.name[0].upper() }}</div>
+                        <div>
+                            <a href="{{ url_for('customers.customer_detail', customer_id=activity.customer_id) }}" class="fw-500">
+                                {{ activity.customer.name }}
+                            </a>
+                            <div class="small text-success">
+                                <i class="bi bi-calendar-event me-1"></i>{{ activity.next_followup.strftime('%d %b %Y, %H:%M') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="followup-type">
+                        <span class="badge-activity">{{ activity.activity_type }}</span>
+                    </div>
+                    <div class="followup-note text-muted small">{{ (activity.note or '')[:60] }}{% if activity.note and activity.note|length > 60 %}...{% endif %}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-calendar2 text-muted fs-2"></i>
+                <p>No upcoming follow-ups in the next 7 days.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
