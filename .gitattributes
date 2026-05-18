@@ -1,0 +1,5 @@
+# Force GitHub Language to Python
+*.py linguist-language=Python
+*.html linguist-language=Python
+*.css linguist-language=Python
+*.js linguist-language=Python
